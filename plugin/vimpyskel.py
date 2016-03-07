@@ -70,8 +70,12 @@ def most_specific_template(filepath, templates):
     maybe_scores = ((regex_specificity(template_re, filepath), template) for template_re, template in templates)
     scores = ((score, template) for score, template in maybe_scores if score is not None)
 
-    _, template = min(scores)
-    return template
+    try:
+        _, template = min(scores)
+    except ValueError:
+        return None
+    else:
+        return template
 
 
 def read_template(template_str):
