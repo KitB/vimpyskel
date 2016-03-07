@@ -29,7 +29,7 @@ class VPSContext(object):
             return
 
         context = make_format_context(filepath)
-        output = output.format(context)
+        output = output.format(**context)
 
         del vim.current.buffer[:]
         vim.current.buffer.append(output.splitlines())
