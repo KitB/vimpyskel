@@ -2,6 +2,7 @@ import getpass
 import os
 import re
 import sre_parse
+import subprocess
 
 import vim
 
@@ -51,7 +52,19 @@ def make_format_context(filepath, match):
                'groups': match.groups(),
                }
 
+    context['git'] = get_git_info()
+
     return context
+
+
+def get_git_info():
+    try:
+        user_name = subprocess.check_output(['git', 'config', '--get', 'user.name']).strip()
+        user_email = subprocess.check_output(['git', 'config', '--get', 'user.email']).strip()
+    except (subprocess.CalledProcessError, OSError):
+        return {'username': 'INSERT_NAME', 'email': 'INSERT_EMAIL'}
+    else:
+        return {'username': user_name, 'email': user_email}
 
 
 def regex_specificity(regex, search_string):
