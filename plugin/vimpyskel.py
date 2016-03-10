@@ -24,23 +24,31 @@ class VPSContext(object):
 
     def __call__(self):
         filepath = vim.current.buffer.name
-        output = self.find_template(filepath)
+        try:
+            output = self.find_template(filepath)
+        except TypeError:
+            return
+
         if output is None:
             return
 
-        context = make_format_context(filepath)
-        output = output.format(**context)
+        template, match = output
+
+        context = make_format_context(filepath, match)
+        to_go_in_buffer = template.format(**context)
 
         del vim.current.buffer[:]
-        vim.current.buffer.append(output.splitlines())
+        vim.current.buffer.append(to_go_in_buffer.splitlines())
         del vim.current.buffer[0]
 
 
-def make_format_context(filepath):
+def make_format_context(filepath, match):
     context = {'filepath': filepath,
                'basename': os.path.basename(filepath),
-               'dirname': os.path.dirname(filepath),
+               'dirpath': os.path.dirname(filepath),
+               'dirname': os.path.basename(os.path.dirname(filepath)),
                'whoami': getpass.getuser(),
+               'groups': match.groups(),
                }
 
     return context
@@ -63,19 +71,27 @@ def regex_specificity(regex, search_string):
             if v == 'at_boundary':  # all other anchors are 2 char
                 score -= 2
 
-    return score
+    return score, match
 
 
 def most_specific_template(filepath, templates):
-    maybe_scores = ((regex_specificity(template_re, filepath), template) for template_re, template in templates)
-    scores = ((score, template) for score, template in maybe_scores if score is not None)
+    scores = []
+    for template_re, template in templates:
+        print template_re.pattern
+        try:
+            score, match = regex_specificity(template_re, filepath)
+        except TypeError:
+            continue
+        print score
+        if score is not None:
+            scores.append((score, template, match))
 
     try:
-        _, template = min(scores)
+        _, template, match = min(scores)
     except ValueError:
         return None
     else:
-        return template
+        return template, match
 
 
 def read_template(template_str):
